@@ -8,10 +8,13 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
     ui->picInfo->setText("Please open a RES file before proceeding...");
+    /* Add actions for the widgets */
     connect(ui->actionOpen, SIGNAL(triggered()), this, SLOT(openFileClicked()));
-    connect(ui->fileList, SIGNAL(currentRowChanged(int)), this, SLOT(imageSelected(int)));
     connect(ui->actionQuit, SIGNAL(triggered()), this, SLOT(close()));
     connect(ui->actionAbout, SIGNAL(triggered()), this, SLOT(showAbout()));
+    connect(ui->fileList, SIGNAL(currentRowChanged(int)), this, SLOT(imageSelected(int)));
+    connect(ui->picExport, SIGNAL(clicked()), this, SLOT(exportImage()));
+    ui->picExport->hide();
 }
 
 MainWindow::~MainWindow()
@@ -39,6 +42,8 @@ void MainWindow::openFileClicked() {
         ui->fileList->clear();
         ui->fileList->addItems(list);
         ui->fileList->setCurrentRow(0);
+        /* Show the button to export the images */
+        ui->picExport->show();
     }
 }
 
@@ -47,6 +52,25 @@ void MainWindow::imageSelected(int row) {
     ui->picInfo->setText(ui->fileList->item(row)->text());
     ui->picLabel->setAlignment(Qt::AlignCenter);
     ui->picLabel->setPixmap(QPixmap::fromImage(img));
+}
+
+void MainWindow::exportImage() {
+    QString path = QFileDialog::getSaveFileName(this, tr("Export image..."),
+                                                "",
+                                                tr("Images (*.png)"));
+    if (path.isNull() && path.isEmpty())
+        return;
+
+    if (!path.endsWith(".png", Qt::CaseInsensitive))
+        path += QString(".png");
+
+    const int selected = ui->fileList->currentRow();
+    const QImage& current = res->getImage(selected);
+    bool ok = current.save(path, "png");
+    if (!ok) {
+        QMessageBox::critical(this, "Error saving file",
+                              "Could not save the file");
+    }
 }
 
 void MainWindow::showAbout() {

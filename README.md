@@ -20,6 +20,9 @@ It has **only** been tested on Linux (Ubuntu 14.04).
 
 ## Changelog
 
+v0.25:
+- Images can now be exported as PNG
+
 v0.2:
 - Unknown field is now known (alpha or not alpha image)
 - Add support to view opaque images (no alpha)

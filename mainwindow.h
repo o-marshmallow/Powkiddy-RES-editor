@@ -5,6 +5,7 @@
 #include <QAction>
 #include <QFileDialog>
 #include <QMessageBox>
+#include <QPushButton>
 #include "version.h"
 #include "resfile.h"
 
@@ -28,6 +29,7 @@ private slots:
     void openFileClicked();
     void imageSelected(int);
     void showAbout();
+    void exportImage();
 };
 
 #endif // MAINWINDOW_H
