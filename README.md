@@ -18,6 +18,17 @@ It has **only** been tested on Linux (Ubuntu 14.04).
 
 **YES**, zlib is necessary to DEFLATE some parts of the RES file.
 
+## Changelog
+
+v0.2:
+- Unknown field is now known (alpha or not alpha image)
+- Add support to view opaque images (no alpha)
+- After loading a RES file, the first picture will be shown
+- Factorize code
+
+v0.1:
+- Initial version: the program can open RES file and show some images of the file.
+
 ## Thanks
 
 Big thanks to **KikiOnE** from xda-developers forum who worked with me on reverse engineering the RES file structure.

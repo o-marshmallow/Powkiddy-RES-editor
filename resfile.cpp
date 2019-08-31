@@ -57,26 +57,47 @@ void ResFile::parseImage(const int index) {
                                                 data[addr + 6] << 16 |
                                                 data[addr + 5] << 8  |
                                                 data[addr + 4]);
+    const QSize qimage_dim(width, height);
+
     if (size != (header.size - PIC_HEADER_SIZE)) {
         QMessageBox::warning(nullptr, tr("Wrong image format"),
         tr("The image size in the header and metadata header don't match.\n"
            "The program will continue taking in account the metadata size"));
     }
 
-    /* Decompress data */
+    /* Point to image data */
     uint8_t *img = data + addr + PIC_HEADER_SIZE;
-    const uint32_t size_out = width * height * 3;
+
+    /* Calculate size according to alpha */
+    uint32_t size_out = width * height;
+    if (IMG_HAS_ALPHA(header.type))
+        size_out *= 3;
+    else
+        size_out *= 2;
+
+    /* Decompress data */
     uint8_t *uncompressed = new uint8_t[size_out];
     Zlib::inf(img, size, uncompressed, size_out);
     img = uncompressed;
 
-    QImage qimg(width, height, QImage::Format::Format_RGBA8888);
+    /* Convert raw data to QImage */
+    if (IMG_HAS_ALPHA(header.type))
+        m_images[index] = rawToAlphaImage(img, size_out, qimage_dim);
+    else
+        m_images[index] = rawToOpaqueImage(img, size_out, qimage_dim);
+
+    delete[] uncompressed;
+}
+
+QImage ResFile::rawToAlphaImage(const uint8_t* rawimg, const uint32_t count,
+                                const QSize& size) {
+    QImage qimg(size, QImage::Format::Format_RGBA8888);
     int x = 0;
     int y = 0;
 
-    for (uint32_t i = 0; i < size_out; i += 3) {
-      uint8_t  alpha = static_cast<uint8_t>(img[i + 2]);
-      uint16_t bytes = static_cast<uint16_t>((img[i + 1] << 8) | img[i]);
+    for (uint32_t i = 0; i < count; i += 3) {
+      uint8_t  alpha = static_cast<uint8_t>(rawimg[i + 2]);
+      uint16_t bytes = static_cast<uint16_t>(rawimg[i + 1] << 8 | rawimg[i]);
 
       uint8_t blue   = static_cast<uint8_t>(bytes & 0x1f);
       /* We have to dump the fifth bit, so let's shift the byte by
@@ -93,14 +114,45 @@ void ResFile::parseImage(const int index) {
       qimg.setPixelColor(x, y,
                          QColor(red, green, blue, alpha));
       x++;
-      if (x == width) {
+      if (x == size.width()) {
           x = 0;
           y++;
       }
     }
 
-    delete img;
-    m_images[index] = qimg;
+    return qimg;
+}
+
+QImage ResFile::rawToOpaqueImage(const uint8_t* rawimg, const uint32_t count,
+                                 const QSize& size) {
+    QImage qimg(size, QImage::Format::Format_RGB32);
+    int x = 0;
+    int y = 0;
+
+    for (uint32_t i = 0; i < count; i += 2) {
+      uint16_t bytes = static_cast<uint16_t>(rawimg[i + 1] << 8 | rawimg[i]);
+
+      uint8_t blue   = static_cast<uint8_t>(bytes & 0x1f);
+      /* We have to dump the fifth bit, so let's shift the byte by
+       * 6 instead of 5. */
+      uint8_t green = static_cast<uint8_t>((bytes >> 6)  & 0x1f);
+      uint8_t red   = static_cast<uint8_t>((bytes >> 11) & 0x1f);
+
+      /* Convert R, G and B to 8-bit values */
+      const float ratio = 8.2258f;
+      blue  = static_cast<uint8_t>(blue  * ratio);
+      green = static_cast<uint8_t>(green * ratio);
+      red   = static_cast<uint8_t>(red   * ratio);
+
+      qimg.setPixelColor(x, y, QColor(red, green, blue));
+      x++;
+      if (x == size.width()) {
+          x = 0;
+          y++;
+      }
+    }
+
+    return qimg;
 }
 
 void ResFile::parseHeaders(const QByteArray& bytes) {
@@ -119,7 +171,7 @@ void ResFile::parseHeaders(const QByteArray& bytes) {
                          (data[3] << 24) | (data[2] << 16) |
                          (data[1] << 8)  | (data[0] << 0));
     header.size = static_cast<uint16_t>((data[5] << 8) | data[4]);
-    header.unknown = static_cast<uint8_t>(data[6]);
+    header.type = static_cast<uint8_t>(data[6]);
     memcpy(header.name, &data[7], sizeof(header.name));
     m_headers.push_back(header);
     data += RES_HEADER_SIZE;

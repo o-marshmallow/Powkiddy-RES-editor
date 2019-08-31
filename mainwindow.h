@@ -5,6 +5,7 @@
 #include <QAction>
 #include <QFileDialog>
 #include <QMessageBox>
+#include "version.h"
 #include "resfile.h"
 
 namespace Ui {

@@ -7,10 +7,12 @@
 #include <QImage>
 #include <QMessageBox>
 #include <QByteArray>
+#include <QSize>
 #include <stdint.h>
 
 #define RES_HEADER_SIZE 16
 #define PIC_HEADER_SIZE  8
+#define IMG_HAS_ALPHA(TYPE) ((TYPE) & 8)
 
 class ResFile : public QFile {
 public:
@@ -25,7 +27,7 @@ private:
     typedef struct {
       uint32_t address;
       uint16_t size;
-      uint8_t  unknown;
+      uint8_t  type;
       char     name[8];
     } FileHeader;
 
@@ -37,6 +39,8 @@ private:
 
     void parseHeaders(const QByteArray&);
     void parseImage(const int);
+    QImage rawToAlphaImage(const uint8_t*, const uint32_t, const QSize&);
+    QImage rawToOpaqueImage(const uint8_t*, const uint32_t, const QSize&);
 };
 
 #endif // RESFILE_H

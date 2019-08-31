@@ -33,7 +33,8 @@ SOURCES += \
 HEADERS += \
         mainwindow.h \
         resfile.h \
-    zlib_util.h
+    zlib_util.h \
+    version.h
 
 FORMS += \
         mainwindow.ui

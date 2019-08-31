@@ -23,7 +23,7 @@ void MainWindow::openFileClicked() {
     /* Open a file browser to select the .res file */
     QString filename = QFileDialog::getOpenFileName(this,
                                                     tr("Open File..."), "",
-                                                    tr("RES Files (*.*)"));
+                                                    tr("RES Files (*.res)"));
     /* Delete old res file if opened */
     if (!filename.isNull() && !filename.isEmpty() && res != nullptr) {
         delete res;
@@ -38,7 +38,7 @@ void MainWindow::openFileClicked() {
         const QStringList list = res->getFileList();
         ui->fileList->clear();
         ui->fileList->addItems(list);
-        ui->fileList->setCurrentRow(1);
+        ui->fileList->setCurrentRow(0);
     }
 }
 
@@ -51,7 +51,7 @@ void MainWindow::imageSelected(int row) {
 
 void MainWindow::showAbout() {
     const QString about("RES Editor\n"
-                        "Version: 0.1 alpha\n"
+                        "Version: " CURRENT_VERSION "\n"
                         "Creator: o-marshmallow\n"
                         "Big thanks to: KikiOnE (xda-developers)\n"
                         "\nFor more information, please check the official repo:\n"
