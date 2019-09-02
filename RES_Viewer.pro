@@ -25,6 +25,7 @@ DEFINES += QT_DEPRECATED_WARNINGS
 CONFIG += c++11
 
 SOURCES += \
+    ioutils.cpp \
         main.cpp \
         mainwindow.cpp \
         resfile.cpp \
@@ -32,6 +33,7 @@ SOURCES += \
     zlib.cpp
 
 HEADERS += \
+    ioutils.h \
         mainwindow.h \
         resfile.h \
     respicture.h \

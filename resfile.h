@@ -9,19 +9,29 @@
 #include <QMessageBox>
 #include <QByteArray>
 #include <QSize>
-#include <stdint.h>
-#include "respicture.h"
+#include <QDataStream>
 
-#define RES_HEADER_SIZE 16
+#include <stdint.h>
+#include <vector>
+
+#include "respicture.h"
+#include "ioutils.h"
+
+#define RES_HEADER_SIZE 16U
+
+using namespace std;
 
 class ResFile : public QFile {
 public:
     ResFile(const QString& path);
     ~ResFile();
     bool resFileOk();
+    bool save(const QString&);
     const QStringList getFileList();
     const QImage& getImage(const int);
     const QString getImageInfo(const int);
+    bool importSizeMatch(int, const QSize&);
+    bool importImage(int, const QImage&);
 
 private:
 
@@ -31,6 +41,7 @@ private:
     QVector<ResPicture> m_images;
 
     void parseHeaders(const QByteArray&);
+    static void writeHeader(const FileHeader&, vector<uint8_t>&);
 };
 
 #endif // RESFILE_H

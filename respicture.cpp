@@ -130,3 +130,60 @@ void ResPicture::parseOpaqueImage() {
       }
     }
 }
+
+FileHeader ResPicture::getHeader() {
+    return m_header;
+}
+
+vector<uint8_t> ResPicture::getCompressedData() {
+    vector<uint8_t> finaldata;
+
+    const uint16_t width  = static_cast<uint16_t>(m_dimension.width());
+    const uint16_t height = static_cast<uint16_t>(m_dimension.height());
+    const uint32_t size   = static_cast<uint32_t>(m_compressed.size());
+
+    IOUtils::pushLittleEndianValue(finaldata, width);
+    IOUtils::pushLittleEndianValue(finaldata, height);
+    IOUtils::pushLittleEndianValue(finaldata, size);
+    IOUtils::concatVector(finaldata, m_compressed);
+
+    return finaldata;
+}
+
+const QSize& ResPicture::getSize() {
+    return m_dimension;
+}
+
+void ResPicture::replaceImage(const QImage& img) {
+    int r, g, b, a;
+    const float ratio = 8.2258f;
+
+    m_uncompressed.clear();
+
+    for (int i = 0; i < img.height(); i++) {
+        for (int j = 0; j < img.width(); j++) {
+            const QColor color = img.pixelColor(j, i);
+            color.getRgb(&r, &g, &b, &a);
+
+            uint8_t red   = static_cast<uint8_t>(r/ratio);
+            uint8_t green = static_cast<uint8_t>(g/ratio);
+            uint8_t blue  = static_cast<uint8_t>(b/ratio);
+
+            uint16_t bytes = ((red   & 0x1f) << 11 |
+                              (green & 0x1f) <<  6 |
+                              (blue  & 0x1f) <<  0);
+
+            IOUtils::pushLittleEndianValue(m_uncompressed, bytes);
+
+            if (IMG_HAS_ALPHA(m_header.type))
+                m_uncompressed.push_back(static_cast<uint8_t>(a));
+        }
+    }
+
+    m_compressed.clear();
+    m_compressed.resize(m_uncompressed.size());
+    Zlib::def(m_uncompressed, m_compressed, Z_DEFAULT_COMPRESSION);
+
+    m_image = img;
+}
+

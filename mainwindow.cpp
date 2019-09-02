@@ -12,8 +12,11 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->actionOpen, SIGNAL(triggered()), this, SLOT(openFileClicked()));
     connect(ui->actionQuit, SIGNAL(triggered()), this, SLOT(close()));
     connect(ui->actionAbout, SIGNAL(triggered()), this, SLOT(showAbout()));
+    connect(ui->actionSaveas, SIGNAL(triggered()), this, SLOT(saveResAs()));
     connect(ui->fileList, SIGNAL(currentRowChanged(int)), this, SLOT(imageSelected(int)));
     connect(ui->picExport, SIGNAL(clicked()), this, SLOT(exportImage()));
+    connect(ui->picImport, SIGNAL(clicked()), this, SLOT(importImage()));
+    ui->picImport->hide();
     ui->picExport->hide();
 }
 
@@ -42,8 +45,10 @@ void MainWindow::openFileClicked() {
         ui->fileList->clear();
         ui->fileList->addItems(list);
         ui->fileList->setCurrentRow(0);
-        /* Show the button to export the images */
+
+        /* Show the buttons for importing and exporting */
         ui->picExport->show();
+        ui->picImport->show();
     }
 }
 
@@ -54,11 +59,41 @@ void MainWindow::imageSelected(int row) {
     ui->picLabel->setPixmap(QPixmap::fromImage(img));
 }
 
+void MainWindow::importImage() {
+    const int selected = ui->fileList->currentRow();
+
+    QString filename = QFileDialog::getOpenFileName(this,
+                                                    tr("Import an image..."), "",
+                                                    tr("Images (*.png *.jpg *.bmp)"));
+    if (filename.isNull() || filename.isEmpty())
+        return;
+
+    QImageReader reader(filename);
+    if (!res->importSizeMatch(selected, reader.size())) {
+        QMessageBox::critical(this, "Error importing the image",
+                              "The dimension don't match, please select an image with the same dimension");
+        return;
+    }
+
+    QImage img = reader.read();
+    if (img.isNull()) {
+        QMessageBox::critical(this, "Error importing the image",
+                              reader.errorString());
+        return;
+    }
+
+    res->importImage(selected, img);
+
+    /* Load the new image */
+    const QImage& newimg = res->getImage(selected);
+    ui->picLabel->setPixmap(QPixmap::fromImage(newimg));
+}
+
 void MainWindow::exportImage() {
     QString path = QFileDialog::getSaveFileName(this, tr("Export image..."),
                                                 "",
                                                 tr("Images (*.png)"));
-    if (path.isNull() && path.isEmpty())
+    if (path.isNull() || path.isEmpty())
         return;
 
     if (!path.endsWith(".png", Qt::CaseInsensitive))
@@ -67,6 +102,23 @@ void MainWindow::exportImage() {
     const int selected = ui->fileList->currentRow();
     const QImage& current = res->getImage(selected);
     bool ok = current.save(path, "png");
+    if (!ok) {
+        QMessageBox::critical(this, "Error saving file",
+                              "Could not save the file");
+    }
+}
+
+void MainWindow::saveResAs() {
+    QString path = QFileDialog::getSaveFileName(this, tr("Save RES as..."),
+                                                "",
+                                                tr("RES file (*.res)"));
+    if (path.isNull() || path.isEmpty())
+        return;
+
+    if (!path.endsWith(".res", Qt::CaseInsensitive))
+        path += QString(".res");
+
+    bool ok = res->save(path);
     if (!ok) {
         QMessageBox::critical(this, "Error saving file",
                               "Could not save the file");

@@ -52,6 +52,23 @@ const QString ResFile::getImageInfo(const int index) {
         return QString();
 }
 
+bool ResFile::importSizeMatch(int index, const QSize& size) {
+    if (index < m_images.size())
+        return m_images[index].getSize() == size;
+    else
+        return false;
+}
+
+bool ResFile::importImage(int index, const QImage& image) {
+    if (index < m_images.size()) {
+        m_images[index].replaceImage(image);
+        return true;
+    } else {
+        return false;
+    }
+}
+
+
 void ResFile::parseHeaders(const QByteArray& bytes) {
   /* This first raw first pointer will be used to parse the headers */
   const uint8_t *data     = (const uint8_t*) bytes.data();
@@ -83,4 +100,53 @@ void ResFile::parseHeaders(const QByteArray& bytes) {
   m_parsed = true;
 }
 
+bool ResFile::save(const QString& path) {
+    bool ok = true;
+    vector<uint8_t> resheader {'R', 'E', 'S', 0x19};
+    vector<uint8_t> endheader {0x00, 0xC0, 0x00, 0x02, 0x00,
+                               0x00, 0x00, 0x00, 0x00, 0x00};
+    vector<uint8_t> allfiles;
 
+    /* Retrieve all the compressed data */
+    uint16_t imgcount = static_cast<uint16_t>(m_images.size());
+    IOUtils::pushLittleEndianValue(resheader, imgcount);
+    IOUtils::concatVector(resheader, endheader);
+
+    uint32_t next_image_addr = RES_HEADER_SIZE +
+              (static_cast<uint32_t>(m_images.size()) * RES_HEADER_SIZE);
+
+    for (int i = 0; i < m_images.size(); i++) {
+        /* Generate the compressed data for the image, including its header! */
+        const std::vector<uint8_t> compressed =
+            m_images[i].getCompressedData();
+
+        /* Generate the header */
+        FileHeader header = m_images[i].getHeader();
+        header.address = next_image_addr;
+        header.size    = static_cast<uint16_t>(compressed.size());
+        writeHeader(header, resheader);
+
+        /* Add compressed data to the final vector */
+        IOUtils::concatVector(allfiles, compressed);
+
+        next_image_addr += compressed.size();
+    }
+
+    /* Open the file and the stream associated to it */
+    QFile file(path);
+    file.open(QIODevice::WriteOnly | QIODevice::Truncate);
+    QDataStream stream(&file);
+
+    stream.writeRawData((const char*) resheader.data(), resheader.size());
+    stream.writeRawData((const char*) allfiles.data(), allfiles.size());
+
+    file.close();
+    return ok;
+}
+
+void ResFile::writeHeader(const FileHeader& header, vector<uint8_t>& stream) {
+    IOUtils::pushLittleEndianValue(stream, header.address);
+    IOUtils::pushLittleEndianValue(stream, header.size);
+    stream.push_back(header.type);
+    stream.insert(stream.end(), begin(header.name), end(header.name));
+}
