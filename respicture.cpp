@@ -12,14 +12,20 @@ ResPicture::ResPicture(FileHeader header, const uint8_t* rawdata) :
     const uint32_t addr = header.address;
     const int width  = rawdata[addr + 1] << 8 | rawdata[addr];
     const int height = rawdata[addr + 3] << 8 | rawdata[addr + 2];
-    const uint size  = static_cast<uint>((rawdata[addr + 7] << 24) |
-                                         (rawdata[addr + 6] << 16) |
-                                         (rawdata[addr + 5] <<  8) |
-                                         (rawdata[addr + 4]));
+    uint size  = static_cast<uint>((rawdata[addr + 7] << 24) |
+                                   (rawdata[addr + 6] << 16) |
+                                   (rawdata[addr + 5] <<  8) |
+                                   (rawdata[addr + 4]));
+
+    if (header.type == 0x5) {
+        /* No size in file header type */
+        size = header.size;
+    }
+
     m_dimension = QSize(width, height);
+    const uint8_t *img = rawdata + addr + PIC_HEADER_SIZE;
 
     /* Store compressed image data */
-    const uint8_t *img = rawdata + addr + PIC_HEADER_SIZE;
     m_compressed.resize(size);
     memcpy(&m_compressed[0], img, size);
 

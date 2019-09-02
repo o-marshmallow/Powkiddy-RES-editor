@@ -13,7 +13,7 @@
 #include "ioutils.h"
 
 #define PIC_HEADER_SIZE  8U
-#define IMG_HAS_ALPHA(TYPE) ((TYPE) & 8U)
+#define IMG_HAS_ALPHA(TYPE) ((TYPE) == 8U)
 
 using namespace std;
 
