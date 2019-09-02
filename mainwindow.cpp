@@ -30,6 +30,11 @@ void MainWindow::openFileClicked() {
     QString filename = QFileDialog::getOpenFileName(this,
                                                     tr("Open File..."), "",
                                                     tr("RES Files (*.res)"));
+
+    if (filename.isNull() || filename.isEmpty()) {
+        return;
+    }
+
     /* Delete old res file if opened */
     if (!filename.isNull() && !filename.isEmpty() && res != nullptr) {
         delete res;
