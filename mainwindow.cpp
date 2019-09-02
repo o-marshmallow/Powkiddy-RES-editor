@@ -37,6 +37,9 @@ void MainWindow::openFileClicked() {
 
     /* Delete old res file if opened */
     if (!filename.isNull() && !filename.isEmpty() && res != nullptr) {
+        ui->fileList->blockSignals(true);
+        ui->fileList->clear();
+        ui->fileList->blockSignals(false);
         delete res;
     }
 
@@ -47,7 +50,6 @@ void MainWindow::openFileClicked() {
           QMessageBox::Ok);
     } else {
         const QStringList list = res->getFileList();
-        ui->fileList->clear();
         ui->fileList->addItems(list);
         ui->fileList->setCurrentRow(0);
 

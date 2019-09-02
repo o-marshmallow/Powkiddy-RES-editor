@@ -20,6 +20,9 @@ It has **only** been tested on Linux (Ubuntu 14.04).
 
 ## Changelog
 
+v1.01:
+- Fix a major bug that occured when reloading a RES file
+
 v1.0:
 - Images in a RES file can now be replaced
 - Modified RES file can now be exported
