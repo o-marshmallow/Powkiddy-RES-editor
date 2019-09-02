@@ -20,6 +20,10 @@ It has **only** been tested on Linux (Ubuntu 14.04).
 
 ## Changelog
 
+v1.0:
+- Images in a RES file can now be replaced
+- Modified RES file can now be exported
+
 v0.25:
 - Images can now be exported as PNG
 
