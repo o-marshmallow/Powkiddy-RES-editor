@@ -28,11 +28,13 @@ SOURCES += \
         main.cpp \
         mainwindow.cpp \
         resfile.cpp \
+    respicture.cpp \
     zlib.cpp
 
 HEADERS += \
         mainwindow.h \
         resfile.h \
+    respicture.h \
     zlib_util.h \
     version.h
 

@@ -2,7 +2,7 @@
 #include "zlib_util.h"
 #include <stdio.h>
 
-ResFile::ResFile(const QString& path) : QFile(path), m_data(), m_parsed(false), m_headers()
+ResFile::ResFile(const QString& path) : QFile(path), m_data(), m_parsed(false)
 {
     if (!exists())
         return;
@@ -30,142 +30,42 @@ bool ResFile::resFileOk() {
 const QStringList ResFile::getFileList() {
     QStringList names;
 
-    for(int i = 0; i < m_headers.size(); i++) {
-        names.push_back(m_headers[i].name);
+    for(int i = 0; i < m_images.size(); i++) {
+        names.push_back(m_images[i].getName());
     }
 
     return names;
 }
 
 const QImage& ResFile::getImage(const int index) {
-    if (m_images[index].isNull())
-        parseImage(index);
-
-    return m_images[index];
-}
-
-void ResFile::parseImage(const int index) {
-    const FileHeader header = m_headers[index];
-    const uint32_t addr = header.address;
-    uint8_t* data = (uint8_t*) m_data.data();
-
-    const uint16_t width = static_cast<uint16_t>(data[addr + 1] << 8 |
-                                                 data[addr]);
-    const uint16_t height = static_cast<uint16_t>(data[addr + 3] << 8 |
-                                                  data[addr + 2]);
-    const uint32_t size = static_cast<uint16_t>(data[addr + 7] << 24 |
-                                                data[addr + 6] << 16 |
-                                                data[addr + 5] << 8  |
-                                                data[addr + 4]);
-    const QSize qimage_dim(width, height);
-
-    if (size != (header.size - PIC_HEADER_SIZE)) {
-        QMessageBox::warning(nullptr, tr("Wrong image format"),
-        tr("The image size in the header and metadata header don't match.\n"
-           "The program will continue taking in account the metadata size"));
-    }
-
-    /* Point to image data */
-    uint8_t *img = data + addr + PIC_HEADER_SIZE;
-
-    /* Calculate size according to alpha */
-    uint32_t size_out = width * height;
-    if (IMG_HAS_ALPHA(header.type))
-        size_out *= 3;
+    if (index < m_images.size())
+        return m_images[index].getImage();
     else
-        size_out *= 2;
+        return QImage();
+}
 
-    /* Decompress data */
-    uint8_t *uncompressed = new uint8_t[size_out];
-    Zlib::inf(img, size, uncompressed, size_out);
-    img = uncompressed;
 
-    /* Convert raw data to QImage */
-    if (IMG_HAS_ALPHA(header.type))
-        m_images[index] = rawToAlphaImage(img, size_out, qimage_dim);
+const QString ResFile::getImageInfo(const int index) {
+    if (index < m_images.size())
+        return m_images[index].getInfo();
     else
-        m_images[index] = rawToOpaqueImage(img, size_out, qimage_dim);
-
-    delete[] uncompressed;
-}
-
-QImage ResFile::rawToAlphaImage(const uint8_t* rawimg, const uint32_t count,
-                                const QSize& size) {
-    QImage qimg(size, QImage::Format::Format_RGBA8888);
-    int x = 0;
-    int y = 0;
-
-    for (uint32_t i = 0; i < count; i += 3) {
-      uint8_t  alpha = static_cast<uint8_t>(rawimg[i + 2]);
-      uint16_t bytes = static_cast<uint16_t>(rawimg[i + 1] << 8 | rawimg[i]);
-
-      uint8_t blue   = static_cast<uint8_t>(bytes & 0x1f);
-      /* We have to dump the fifth bit, so let's shift the byte by
-       * 6 instead of 5. */
-      uint8_t green = static_cast<uint8_t>((bytes >> 6)  & 0x1f);
-      uint8_t red   = static_cast<uint8_t>((bytes >> 11) & 0x1f);
-
-      /* Convert R, G and B to 8-bit values */
-      const float ratio = 8.2258f;
-      blue  = static_cast<uint8_t>(blue  * ratio);
-      green = static_cast<uint8_t>(green * ratio);
-      red   = static_cast<uint8_t>(red   * ratio);
-
-      qimg.setPixelColor(x, y,
-                         QColor(red, green, blue, alpha));
-      x++;
-      if (x == size.width()) {
-          x = 0;
-          y++;
-      }
-    }
-
-    return qimg;
-}
-
-QImage ResFile::rawToOpaqueImage(const uint8_t* rawimg, const uint32_t count,
-                                 const QSize& size) {
-    QImage qimg(size, QImage::Format::Format_RGB32);
-    int x = 0;
-    int y = 0;
-
-    for (uint32_t i = 0; i < count; i += 2) {
-      uint16_t bytes = static_cast<uint16_t>(rawimg[i + 1] << 8 | rawimg[i]);
-
-      uint8_t blue   = static_cast<uint8_t>(bytes & 0x1f);
-      /* We have to dump the fifth bit, so let's shift the byte by
-       * 6 instead of 5. */
-      uint8_t green = static_cast<uint8_t>((bytes >> 6)  & 0x1f);
-      uint8_t red   = static_cast<uint8_t>((bytes >> 11) & 0x1f);
-
-      /* Convert R, G and B to 8-bit values */
-      const float ratio = 8.2258f;
-      blue  = static_cast<uint8_t>(blue  * ratio);
-      green = static_cast<uint8_t>(green * ratio);
-      red   = static_cast<uint8_t>(red   * ratio);
-
-      qimg.setPixelColor(x, y, QColor(red, green, blue));
-      x++;
-      if (x == size.width()) {
-          x = 0;
-          y++;
-      }
-    }
-
-    return qimg;
+        return QString();
 }
 
 void ResFile::parseHeaders(const QByteArray& bytes) {
-  uint16_t i = 0;
-  const uint8_t *data = (const uint8_t*) bytes.data();
+  /* This first raw first pointer will be used to parse the headers */
+  const uint8_t *data     = (const uint8_t*) bytes.data();
+  /* this second one will be passed to the ResPicture class */
+  const uint8_t *rawbytes = data;
   int count = (data[5] << 8) | data[4];
 
-  m_headers.clear();
+  /* Clear images already created */
+  m_images.clear();
 
   /* Skip RES file header */
   data += RES_HEADER_SIZE;
 
-  for (i = 0; i < count; i++) {
+  for (int i = 0; i < count; i++) {
     FileHeader header;
     header.address = static_cast<u_int32_t>(
                          (data[3] << 24) | (data[2] << 16) |
@@ -173,7 +73,10 @@ void ResFile::parseHeaders(const QByteArray& bytes) {
     header.size = static_cast<uint16_t>((data[5] << 8) | data[4]);
     header.type = static_cast<uint8_t>(data[6]);
     memcpy(header.name, &data[7], sizeof(header.name));
-    m_headers.push_back(header);
+
+    /* Create the image from the given header */
+    m_images.push_back(ResPicture(header, rawbytes));
+
     data += RES_HEADER_SIZE;
   }
 

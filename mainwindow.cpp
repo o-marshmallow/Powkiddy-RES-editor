@@ -49,7 +49,7 @@ void MainWindow::openFileClicked() {
 
 void MainWindow::imageSelected(int row) {
     const QImage& img = res->getImage(row);
-    ui->picInfo->setText(ui->fileList->item(row)->text());
+    ui->picInfo->setText(res->getImageInfo(row));
     ui->picLabel->setAlignment(Qt::AlignCenter);
     ui->picLabel->setPixmap(QPixmap::fromImage(img));
 }

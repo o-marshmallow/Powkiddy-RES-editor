@@ -4,11 +4,11 @@ Zlib::Zlib()
 {
 }
 
-int Zlib::def(uint8_t* in, uint32_t size_in, uint8_t* out, uint32_t size_out, int level) {
+int Zlib::def(std::vector<uint8_t>& in, std::vector<uint8_t>& out, int level) {
     return Z_DATA_ERROR;
 }
 
-int Zlib::inf(uint8_t* in, uint32_t size_in, uint8_t* out, uint32_t size_out) {
+int Zlib::inf(std::vector<uint8_t>& compressed, std::vector<uint8_t>& decompressed) {
     int ret;
     z_stream strm;
 
@@ -23,14 +23,14 @@ int Zlib::inf(uint8_t* in, uint32_t size_in, uint8_t* out, uint32_t size_out) {
         return ret;
 
     /* decompress until deflate stream ends or end of file */
-    strm.avail_in = size_in;
+    strm.avail_in = compressed.size();
     if (strm.avail_in == 0)
         return Z_DATA_ERROR;
-    strm.next_in = in;
+    strm.next_in = compressed.data();
 
     /* run inflate() on input */
-    strm.avail_out = size_out;
-    strm.next_out = out;
+    strm.avail_out = decompressed.size();
+    strm.next_out = decompressed.data();
     ret = inflate(&strm, Z_NO_FLUSH);
     assert(ret != Z_STREAM_ERROR);  /* state not clobbered */
     switch (ret) {

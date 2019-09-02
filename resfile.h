@@ -1,6 +1,7 @@
 #ifndef RESFILE_H
 #define RESFILE_H
 
+#include <QObject>
 #include <QFile>
 #include <QVector>
 #include <QHash>
@@ -9,10 +10,9 @@
 #include <QByteArray>
 #include <QSize>
 #include <stdint.h>
+#include "respicture.h"
 
 #define RES_HEADER_SIZE 16
-#define PIC_HEADER_SIZE  8
-#define IMG_HAS_ALPHA(TYPE) ((TYPE) & 8)
 
 class ResFile : public QFile {
 public:
@@ -20,27 +20,17 @@ public:
     ~ResFile();
     bool resFileOk();
     const QStringList getFileList();
-    const QImage& getImage(int);
+    const QImage& getImage(const int);
+    const QString getImageInfo(const int);
 
 private:
-    /* File headers in RES file */
-    typedef struct {
-      uint32_t address;
-      uint16_t size;
-      uint8_t  type;
-      char     name[8];
-    } FileHeader;
 
     /* Private members */
     QByteArray          m_data;
     bool                m_parsed;
-    QVector<FileHeader> m_headers;
-    QHash<int, QImage>  m_images;
+    QVector<ResPicture> m_images;
 
     void parseHeaders(const QByteArray&);
-    void parseImage(const int);
-    QImage rawToAlphaImage(const uint8_t*, const uint32_t, const QSize&);
-    QImage rawToOpaqueImage(const uint8_t*, const uint32_t, const QSize&);
 };
 
 #endif // RESFILE_H
