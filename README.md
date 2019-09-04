@@ -6,7 +6,7 @@ RES files are used in Powkiddy consoles running µCO/S-II (mainly X16).
 These files are used to store images that will be used by the applications, like the launcher for example.
 The main purpose of this project is to be able to view and replace the images located in these RES files.
 
-Please keep in mind this is an **alpha** version. It only supports viewing file at the moment. It **DOES NOT** support export/import functionnality yet.
+Please report any bug you find.
 
 ## How to use it ?
 
